@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAI Training Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chat-container {
+            height: calc(100vh - 200px);
+        }
+        .message-container {
+            max-height: calc(100vh - 300px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <!-- Header -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-gray-800">MAI Training Interface</h1>
+                <p class="text-gray-600">Help train MAI to become a better sales professional</p>
+            </div>
+
+            <!-- User ID Input -->
+            <div class="mb-4">
+                <input type="text" id="user-id" 
+                       class="w-full p-2 border rounded"
+                       placeholder="Enter your trainer ID">
+            </div>
+
+            <!-- Chat Container -->
+            <div class="chat-container bg-gray-50 rounded-lg p-4 mb-4">
+                <div id="chat-messages" class="message-container overflow-y-auto">
+                    <!-- Messages will appear here -->
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="flex gap-2">
+                <input type="text" id="message-input" 
+                       class="flex-1 p-2 border rounded"
+                       placeholder="Type your message...">
+                <button onclick="sendMessage()" 
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Send
+                </button>
+                <button onclick="resetConversation()" 
+                        class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let messageInput = document.getElementById('message-input');
+        let chatMessages = document.getElementById('chat-messages');
+
+        // Handle Enter key
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function addMessage(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `p-3 rounded-lg mb-2 ${
+                role === 'user' 
+                    ? 'bg-blue-100 ml-12' 
+                    : 'bg-white mr-12 border'
+            }`;
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const userId = document.getElementById('user-id').value;
+            const message = messageInput.value.trim();
+            
+            if (!userId) {
+                alert('Please enter a trainer ID');
+                return;
+            }
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage('user', message);
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    addMessage('assistant', 'Error: ' + data.error);
+                } else {
+                    addMessage('assistant', data.response);
+                }
+            } catch (error) {
+                addMessage('assistant', 'Error: Could not connect to server');
+            }
+        }
+
+        async function resetConversation() {
+            const userId = document.getElementById('user-id').value;
+            if (!userId) {
+                alert('Please enter a trainer ID');
+                return;
+            }
+
+            try {
+                const response = await fetch('/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                } else {
+                    chatMessages.innerHTML = '';
+                    addMessage('assistant', 'Conversation reset. Ready for new training session.');
+                }
+            } catch (error) {
+                alert('Error: Could not reset conversation');
+            }
+        }
+    </script>
+</body>
+</html>
