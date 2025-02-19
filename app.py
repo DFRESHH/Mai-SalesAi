@@ -15,9 +15,9 @@ import time
 
 # Load environment variables
 load_dotenv()
-
 nest_asyncio.apply()
 
+# Initialize Flask app
 app = Flask(__name__)
 CORS(app)
 
@@ -142,29 +142,37 @@ class MAI:
         return context
     
     def _store_interaction(self, interaction: Interaction):
-        """Store interaction in MongoDB"""
-        self.db.conversations.insert_one({
-            'user_id': interaction.user_id,
-            'message': interaction.message,
-            'response': interaction.response,
-            'timestamp': interaction.timestamp,
-            'context': interaction.context
-        })
-    
-    def _update_learning_patterns(self, interaction: Interaction):
-        """Update learning patterns based on interaction"""
-        # Extract patterns and update learning collection
-        patterns = {
-            'timestamp': interaction.timestamp,
-            'user_id': interaction.user_id,
-            'patterns_identified': self._analyze_patterns(interaction)
+        """Store interaction in MongoDB with size limits"""
+        # Limit context size by only storing essential information
+        limited_context = {
+            'previous_interactions': interaction.context.get('previous_interactions', [])[-3:],
+            'learning_patterns': interaction.context.get('learning_patterns', {})
         }
-        self.db.learnings.insert_one(patterns)
+        
+        # Create document with size limits
+        document = {
+            'user_id': interaction.user_id,
+            'message': interaction.message[:10000],
+            'response': interaction.response[:10000] if interaction.response else None,
+            'timestamp': interaction.timestamp,
+            'context': limited_context
+        }
+        
+        try:
+            self.db.conversations.insert_one(document)
+        except Exception as e:
+            print(f"Error storing interaction: {e}")
+            # Fallback: Store without context if still too large
+            document.pop('context')
+            self.db.conversations.insert_one(document)
     
-    def _get_previous_interactions(self, user_id: str, limit: int = 5) -> List[Dict]:
-        """Get recent interactions for a user"""
+    def _get_previous_interactions(self, user_id: str, limit: int = 3) -> List[Dict]:
+        """Get recent interactions for a user with limited fields"""
         return list(self.db.conversations
-                   .find({'user_id': user_id})
+                   .find(
+                       {'user_id': user_id},
+                       {'message': 1, 'response': 1, 'timestamp': 1, '_id': 0}
+                   )
                    .sort('timestamp', -1)
                    .limit(limit))
     
@@ -172,13 +180,21 @@ class MAI:
         """Get learning patterns for a user"""
         return self.db.learnings.find_one({'user_id': user_id}) or {}
     
+    def _update_learning_patterns(self, interaction: Interaction):
+        """Update learning patterns based on interaction"""
+        patterns = {
+            'timestamp': interaction.timestamp,
+            'user_id': interaction.user_id,
+            'patterns_identified': self._analyze_patterns(interaction)
+        }
+        self.db.learnings.insert_one(patterns)
+    
     def _analyze_patterns(self, interaction: Interaction) -> Dict:
         """Analyze interaction for patterns"""
         # Add your pattern analysis logic here
         return {}
 
-# Initialize Flask application
-app = Flask(__name__)
+# Initialize MAI instance
 mai = MAI()
 
 @app.route('/')
@@ -196,7 +212,6 @@ def chat():
             return jsonify({'error': 'Message is required'}), 400
         
         response = mai.process_message(user_id, message)
-        
         return jsonify({'response': response})
         
     except Exception as e:
