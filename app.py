@@ -4,6 +4,7 @@ from openai import OpenAI
 import os
 import json
 import asyncio
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
@@ -41,10 +42,13 @@ class MAI:
     """Main class handling all of MAI's capabilities"""
     
     def __init__(self):
-        # Initialize OpenAI
-        self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        self.assistant_id = os.getenv('ASSISTANT_ID')
+       # Initialize OpenAI
+        openai.api_key = os.getenv('OPENAI_API_KEY')
+        self.client = openai
+        self.assistant_id = os.getenv('ASSISTANT_ID')   
         
+        pass
+
         # Initialize MongoDB connection
         try:
             self.mongo_client = MongoClient('mongodb://localhost:27017/')
@@ -191,8 +195,149 @@ class MAI:
     
     def _analyze_patterns(self, interaction: Interaction) -> Dict:
         """Analyze interaction for patterns"""
-        # Add your pattern analysis logic here
-        return {}
+        try:
+            return {
+                'interaction_type': {
+                    'question_asked': self._contains_question(interaction.message),
+                    'response_length': len(interaction.response) if interaction.response else 0,
+                    'topic_category': self._categorize_topic(interaction.message)
+                },
+                'sales_patterns': {
+                    'techniques_used': self._identify_sales_techniques(interaction.response),
+                    'objections_raised': self._identify_objections(interaction.message),
+                    'closing_attempts': []
+                },
+                'learning_metrics': {
+                    'understanding_level': self._assess_understanding(interaction),
+                    'engagement_score': 0.0,
+                    'progress_indicators': []
+                }
+            }
+        except Exception as e:
+            print(f"Error in pattern analysis: {e}")
+            return {}
+
+    def _contains_question(self, message: str) -> bool:
+        """Check if message contains questions"""
+        return '?' in message
+
+    def _categorize_topic(self, message: str) -> str:
+        """Categorize the topic of discussion"""
+        keywords = {
+            'pricing': ['price', 'cost', 'budget', 'expensive', 'cheap'],
+            'product': ['product', 'feature', 'specification', 'works'],
+            'objection': ['worried', 'concern', 'problem', 'issue'],
+            'closing': ['buy', 'purchase', 'deal', 'contract']
+        }
+        
+        message = message.lower()
+        for category, words in keywords.items():
+            if any(word in message for word in words):
+                return category
+        return 'general'
+
+    def _identify_sales_techniques(self, response: str) -> List[str]:
+        """Identify sales techniques used in response"""
+        techniques = []
+        if response:
+            response = response.lower()
+            if '?' in response:
+                techniques.append('questioning')
+            if 'benefit' in response or 'value' in response:
+                techniques.append('value_selling')
+            if 'understand' in response or 'tell me more' in response:
+                techniques.append('active_listening')
+            if 'example' in response or 'instance' in response:
+                techniques.append('storytelling')
+        return techniques
+
+    def _identify_objections(self, message: str) -> List[str]:
+        """Identify any objections in the message"""
+        objections = []
+        message = message.lower()
+        if any(word in message for word in ['expensive', 'cost', 'price']):
+            objections.append('pricing')
+        if any(word in message for word in ['time', 'waiting', 'long']):
+            objections.append('timing')
+        if any(word in message for word in ['competition', 'competitor']):
+            objections.append('competition')
+        return objections
+
+    def _assess_understanding(self, interaction: Interaction) -> float:
+        """Assess user's understanding level"""
+        score = 0.0
+        if interaction.response:
+            if len(interaction.message) > 50:
+                score += 0.3
+            if '?' in interaction.message:
+                score += 0.2
+            if len(self._identify_sales_techniques(interaction.response)) > 0:
+                score += 0.5
+        return min(score, 1.0)
+    def _contains_question(self, message: str) -> bool:
+       """Check if message contains questions"""
+       return '?' in message
+
+    def _categorize_topic(self, message: str) -> str:
+        """Categorize the topic of discussion"""
+
+        # Simple keyword-based categorization
+        keywords = {
+            'pricing': ['price', 'cost', 'budget', 'expensive', 'cheap'],
+            'product': ['product', 'feature', 'specification', 'works'],
+            'objection': ['worried', 'concern', 'problem', 'issue'],
+            'closing': ['buy', 'purchase', 'deal', 'contract']
+        }
+        
+        message = message.lower()
+        for category, words in keywords.items():
+            if any(word in message for word in words):
+                return category
+        return 'general'
+
+    def _identify_sales_techniques(self, response: Optional[str]) -> List[str]:
+        """Identify sales techniques used in response"""
+        techniques = []
+        # Check if response exists and is not None
+        if response and isinstance(response, str):
+            response_text = response.lower()
+            if '?' in response_text:
+                techniques.append('questioning')
+            if any(word in response_text for word in ['benefit', 'value']):
+                techniques.append('value_selling')
+            if any(word in response_text for word in ['understand', 'tell me more']):
+                techniques.append('active_listening')
+            if any(word in response_text for word in ['example', 'instance']):
+                techniques.append('storytelling')
+        return techniques
+
+    def _identify_objections(self, message: Optional[str]) -> List[str]:
+        """Identify any objections in the message"""
+        objections = []
+        # Check if message exists and is a string
+        if message and isinstance(message, str):
+            message_text = message.lower()
+            if any(word in message_text for word in ['expensive', 'cost', 'price']):
+                objections.append('pricing')
+            if any(word in message_text for word in ['time', 'waiting', 'long']):
+                objections.append('timing')
+            if any(word in message_text for word in ['competition', 'competitor']):
+                objections.append('competition')
+        return objections
+
+    def _assess_understanding(self, interaction: Interaction) -> float:
+        """Assess user's understanding level"""
+        # Simple scoring based on interaction patterns
+        score = 0.0
+        if interaction.response:
+            # Add points for engagement indicators
+            if len(interaction.message) > 50:
+                score += 0.3
+            if '?' in interaction.message:
+                score += 0.2
+            if len(self._identify_sales_techniques(interaction.response)) > 0:
+                score += 0.5
+        return min(score, 1.0)  # Return score between 0 and 1
 
 # Initialize MAI instance
 mai = MAI()
