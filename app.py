@@ -14,8 +14,10 @@ from flask_cors import CORS
 import nest_asyncio
 import time
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
+
+# Apply nest_asyncio to allow nested event loops
 nest_asyncio.apply()
 
 # Initialize Flask app
@@ -51,7 +53,9 @@ class MAI:
 
         # Initialize MongoDB connection
         try:
-            self.mongo_client = MongoClient('mongodb://localhost:27017/')
+            # Get MongoDB URI from environment variable
+            mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')  # Fallback for local dev
+            self.mongo_client = MongoClient(mongo_uri)
             self.db = self.mongo_client['mai_database']
             # Create collections if they don't exist
             if 'conversations' not in self.db.list_collection_names():
