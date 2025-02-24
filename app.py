@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 import nest_asyncio
 import time
-from pymongo import MongoClient
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,7 +21,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Validate essential environment variables
-required_env_vars = ['OPENAI_API_KEY', 'ASSISTANT_ID', 'MONGODB_URI']
+required_env_vars = ['OPENAI_API_KEY', 'ASSISTANT_ID']
 for var in required_env_vars:
     if not os.getenv(var):
         raise ValueError(f"Error: {var} is missing. Check your .env file.")
@@ -45,28 +44,13 @@ class MAI:
         self.client = openai
         self.assistant_id = os.getenv('ASSISTANT_ID')
         
-        # Initialize MongoDB connection
-        mongo_uri = os.getenv('MONGODB_URI')
-        try:
-            self.mongo_client = MongoClient(mongo_uri)
-            self.db = self.mongo_client['mai_database']
-            # Create collections if they don’t exist
-            if 'conversations' not in self.db.list_collection_names():
-                self.db.create_collection('conversations')
-            if 'learnings' not in self.db.list_collection_names():
-                self.db.create_collection('learnings')
-            print("Successfully connected to MongoDB!")
-        except Exception as e:
-            print(f"Error connecting to MongoDB: {e}")
-            raise
-        
-        # Initialize conversation tracking
+        # Initialize conversation tracking (in-memory only)
         self.threads = {}
     
     def process_message(self, user_id: str, message: str) -> str:
-        """Process a message using the OpenAI Assistant and MongoDB"""
+        """Process a message using the OpenAI Assistant"""
         try:
-            # Create interaction record
+            # Create interaction record (no storage)
             interaction = Interaction(
                 user_id=user_id,
                 message=message,
@@ -93,11 +77,8 @@ class MAI:
             # Wait for response
             response = self._wait_for_response(thread.id, run.id)
             
-            # Update interaction with response
+            # Update interaction with response (in-memory only)
             interaction.response = response
-            
-            # Store interaction in MongoDB
-            self._store_interaction(interaction)
             
             return response
             
@@ -132,43 +113,8 @@ class MAI:
             time.sleep(1)
     
     def _get_context(self, user_id: str) -> Dict:
-        """Retrieve context for a user from MongoDB"""
-        return {
-            'previous_interactions': self._get_previous_interactions(user_id),
-            'learning_patterns': {}
-        }
-    
-    def _store_interaction(self, interaction: Interaction):
-        """Store interaction in MongoDB with size limits"""
-        limited_context = {
-            'previous_interactions': interaction.context.get('previous_interactions', [])[-3:],
-            'learning_patterns': {}
-        }
-        
-        document = {
-            'user_id': interaction.user_id,
-            'message': interaction.message[:10000],
-            'response': interaction.response[:10000] if interaction.response else None,
-            'timestamp': interaction.timestamp,
-            'context': limited_context
-        }
-        
-        try:
-            self.db.conversations.insert_one(document)
-        except Exception as e:
-            print(f"Error storing interaction: {e}")
-            document.pop('context')
-            self.db.conversations.insert_one(document)
-    
-    def _get_previous_interactions(self, user_id: str, limit: int = 3) -> list:
-        """Get recent interactions for a user"""
-        return list(self.db.conversations
-                   .find(
-                       {'user_id': user_id},
-                       {'message': 1, 'response': 1, 'timestamp': 1, '_id': 0}
-                   )
-                   .sort('timestamp', -1)
-                   .limit(limit))
+        """Retrieve context for a user (stub since no MongoDB)"""
+        return {'previous_interactions': [], 'learning_patterns': {}}
 
 # Initialize MAI instance
 mai = MAI()
