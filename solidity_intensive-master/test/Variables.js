@@ -93,4 +93,39 @@ describe('Variables', () => {
       // console.log(result)
     })
   })
-})
+  describe('Example 6', () => {
+    let contract
+
+    beforeEach(async () => {
+      const Contract = await ethers.getContractFactory('Variables6')
+      contract = await Contract.deploy()
+    })
+
+    describe('Variables6', () => {
+      let contract;
+    
+      beforeEach(async () => {
+        const Contract = await ethers.getContractFactory('Variables6');
+        contract = await Contract.deploy();
+      });
+    
+      describe('Variable visibility', () => {
+        it('should correctly store default internal variable', async () => {
+          expect(await contract.getName1()).to.equal('Name 1');
+        });
+    
+        it('should correctly store private variable', async () => {
+          expect(await contract.getName2()).to.equal('Name 2');
+        });
+    
+        it('should correctly store internal variable', async () => {
+          expect(await contract.getName3()).to.equal('Name 3');
+        });
+    
+        it('should correctly store public variable', async () => {
+          expect(await contract.name4()).to.equal('Name 4');
+        });
+      });
+    })
+    })
+  })

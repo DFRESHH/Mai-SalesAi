@@ -90,18 +90,40 @@ contract Variables6 {
     // Defaults to internal
     string name1 = "Name 1";
     // Private variables can only be accessed inside the current contract
+    string private name2 = "Name 2";
+    // Internal variables can be inherited
+    string internal name3 = "Name 3";
+    // Public variables can be accessed externally
+    string public name4 = "Name 4";
+    
+    // Helper function to access internal variable for testing
+    function getName1() public view returns (string memory) {
+        return name1;
+    }
+    
+    // Helper function to access private variable for testing
+    function getName2() public view returns (string memory) {
+        return name2;
+    }
+    
+    // Helper function to access internal variable for testing
+    function getName3() public view returns (string memory) {
+        return name3;
+    }
+}
+    //string name1 = "Name 1";
+    // Private variables can only be accessed inside the current contract
     // They *cannot* be accessed outside the conract
     // They *cannot* be accessed from another contract or inherited
     // Note: private variables are not truly private; anyone can decode the value
-    string private name2 = "Name 2";
+    //string private name2 = "Name 2";
     // Internal variables can only be accessed internally
     // They *cannot* be accessed outside the conract
     // They *cannot* be accessed from another contract
     // They *can* be inherited by another contract
-    string internal name3 = "Name 3";
+    //string internal name3 = "Name 3";
     // Public variables can be accessed internally and externally
     // They *can* be accessed outside the conract
     // They *can* be accessed from another contract
     // They *can* be inherited by another contract
-    string public name4 = "Name 4";
-}
+    //string public name4 = "Name 4";
