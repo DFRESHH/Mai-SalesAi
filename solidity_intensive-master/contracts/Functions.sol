@@ -23,7 +23,6 @@ contract Functions1 {
     }
 }
 
-
 // Functions can call other functions
 // Only public functions are visible outside the contract
 contract Functions2 {
@@ -37,7 +36,6 @@ contract Functions2 {
         return a + b;
     }
 }
-
 
 // Functions can be declared outside the contract
 function addNumbers(uint a, uint b) pure returns(uint) {
@@ -155,7 +153,6 @@ contract Functions6 {
         nameSet = true;
     }
 }
-
 
 // Return Values
 contract Functions7 {
