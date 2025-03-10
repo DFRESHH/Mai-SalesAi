@@ -1,20 +1,15 @@
 from flask import Flask, request, jsonify, render_template
-import openai
-from openai import OpenAI
 import os
-from dataclasses import dataclass
+from openai import OpenAI
 from datetime import datetime
-from typing import Dict, Optional, Any
-from dotenv import load_dotenv
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
 from flask_cors import CORS
-import nest_asyncio
+from dotenv import load_dotenv
 import time
 
 # Load environment variables from .env file
 load_dotenv()
-
-# Apply nest_asyncio to allow nested event loops
-nest_asyncio.apply()
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -32,59 +27,82 @@ class Interaction:
     user_id: str
     message: str
     timestamp: datetime
-    context: Dict[str, Any]
     response: Optional[str] = None
 
 class MAI:
     """Main class handling all of MAI's capabilities"""
     
     def __init__(self):
-        # Initialize OpenAI
-        openai.api_key = os.getenv('OPENAI_API_KEY')
-        self.client = openai
-        self.assistant_id = os.getenv('ASSISTANT_ID')
+        # Initialize OpenAI with the modern client approach
+        try:
+            self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+            self.assistant_id = os.getenv('ASSISTANT_ID')
+            print(f"Successfully initialized OpenAI client with assistant ID: {self.assistant_id}")
+        except Exception as e:
+            print(f"Error initializing OpenAI client: {str(e)}")
+            raise
         
-        # Initialize conversation tracking (in-memory only)
+        # Initialize conversation tracking
         self.threads = {}
     
     def process_message(self, user_id: str, message: str) -> str:
         """Process a message using the OpenAI Assistant"""
         try:
-            # Create interaction record (no storage)
+            # Create interaction record
             interaction = Interaction(
                 user_id=user_id,
                 message=message,
-                timestamp=datetime.now(),
-                context=self._get_context(user_id)
+                timestamp=datetime.now()
             )
             
             # Get or create thread for this user
-            thread = self._get_or_create_thread(user_id)
+            try:
+                thread = self._get_or_create_thread(user_id)
+                print(f"Using thread ID: {thread.id} for user {user_id}")
+            except Exception as e:
+                print(f"Error getting/creating thread: {str(e)}")
+                return "I apologize, but I encountered an error setting up our conversation."
             
             # Add message to thread
-            self.client.beta.threads.messages.create(
-                thread_id=thread.id,
-                role="user",
-                content=message
-            )
+            try:
+                self.client.beta.threads.messages.create(
+                    thread_id=thread.id,
+                    role="user",
+                    content=message
+                )
+                print(f"Added message to thread {thread.id}")
+            except Exception as e:
+                print(f"Error adding message to thread: {str(e)}")
+                return "I apologize, but I encountered an error processing your message."
             
             # Run assistant
-            run = self.client.beta.threads.runs.create(
-                thread_id=thread.id,
-                assistant_id=self.assistant_id
-            )
+            try:
+                run = self.client.beta.threads.runs.create(
+                    thread_id=thread.id,
+                    assistant_id=self.assistant_id
+                )
+                print(f"Created run {run.id} for thread {thread.id}")
+            except Exception as e:
+                print(f"Error creating run: {str(e)}")
+                return "I apologize, but I encountered an error running the assistant."
             
             # Wait for response
-            response = self._wait_for_response(thread.id, run.id)
+            try:
+                response = self._wait_for_response(thread.id, run.id)
+            except Exception as e:
+                print(f"Error waiting for response: {str(e)}")
+                return "I apologize, but I encountered an error getting a response."
             
-            # Update interaction with response (in-memory only)
+            # Update interaction with response
             interaction.response = response
             
             return response
             
         except Exception as e:
-            print(f"Error processing message: {e}")
-            return "I apologize, but I encountered an error processing your message."
+            print(f"Unexpected error in process_message: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return "I apologize, but I encountered an unexpected error processing your message."
     
     def _get_or_create_thread(self, user_id: str):
         """Get existing thread or create new one for user"""
@@ -95,11 +113,15 @@ class MAI:
     
     def _wait_for_response(self, thread_id: str, run_id: str) -> str:
         """Wait for and retrieve the assistant's response"""
+        print(f"Waiting for response on thread {thread_id}, run {run_id}")
+        
         while True:
             run = self.client.beta.threads.runs.retrieve(
                 thread_id=thread_id,
                 run_id=run_id
             )
+            
+            print(f"Run status: {run.status}")
             
             if run.status == "completed":
                 messages = self.client.beta.threads.messages.list(
@@ -108,13 +130,10 @@ class MAI:
                 return messages.data[0].content[0].text.value
             
             elif run.status == "failed":
+                print(f"Run failed with error: {getattr(run, 'last_error', 'Unknown error')}")
                 return "I apologize, but I encountered an error processing your request."
             
             time.sleep(1)
-    
-    def _get_context(self, user_id: str) -> Dict:
-        """Retrieve context for a user (stub since no MongoDB)"""
-        return {'previous_interactions': [], 'learning_patterns': {}}
 
 # Initialize MAI instance
 mai = MAI()
@@ -133,11 +152,15 @@ def chat():
         if not message:
             return jsonify({'error': 'Message is required'}), 400
         
+        print(f"Received chat request from user {user_id}: {message[:50]}...")
         response = mai.process_message(user_id, message)
+        print(f"Sending response: {response[:50]}...")
         return jsonify({'response': response})
         
     except Exception as e:
-        print(f"Error in chat endpoint: {e}")
+        print(f"Error in chat endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @app.route('/reset', methods=['POST'])
@@ -158,6 +181,34 @@ def reset():
     except Exception as e:
         return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
+@app.route('/debug', methods=['GET'])
+def debug():
+    """Debug endpoint to test basic functionality"""
+    try:
+        # Test OpenAI connection
+        try:
+            models = mai.client.models.list()
+            openai_status = f"Connected (found {len(models.data)} models)"
+        except Exception as e:
+            openai_status = f"Error: {str(e)}"
+        
+        # Test Assistant ID
+        try:
+            assistant = mai.client.beta.assistants.retrieve(assistant_id=mai.assistant_id)
+            assistant_status = f"Found: {assistant.name}"
+        except Exception as e:
+            assistant_status = f"Error: {str(e)}"
+        
+        return jsonify({
+            'environment': os.environ.get('FLASK_ENV', 'not set'),
+            'openai_api': openai_status,
+            'assistant': assistant_status,
+            'threads_count': len(mai.threads)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+    
