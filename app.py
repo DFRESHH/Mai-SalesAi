@@ -33,8 +33,9 @@ class MAI:
     """Main class handling all of MAI's capabilities"""
     
     def __init__(self):
-        # Initialize OpenAI with the modern client approach
+        # Initialize OpenAI - SIMPLIFIED TO AVOID PROXIES ERROR
         try:
+            # Just create the client with the API key, no additional parameters
             self.client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
             self.assistant_id = os.getenv('ASSISTANT_ID')
             print(f"Successfully initialized OpenAI client with assistant ID: {self.assistant_id}")
@@ -48,6 +49,8 @@ class MAI:
     def process_message(self, user_id: str, message: str) -> str:
         """Process a message using the OpenAI Assistant"""
         try:
+            print(f"Processing message for user {user_id}")
+            
             # Create interaction record
             interaction = Interaction(
                 user_id=user_id,
@@ -58,9 +61,11 @@ class MAI:
             # Get or create thread for this user
             try:
                 thread = self._get_or_create_thread(user_id)
-                print(f"Using thread ID: {thread.id} for user {user_id}")
+                print(f"Using thread ID: {thread.id}")
             except Exception as e:
-                print(f"Error getting/creating thread: {str(e)}")
+                print(f"ERROR creating/getting thread: {str(e)}")
+                import traceback
+                print(traceback.format_exc())
                 return "I apologize, but I encountered an error setting up our conversation."
             
             # Add message to thread
@@ -89,6 +94,7 @@ class MAI:
             # Wait for response
             try:
                 response = self._wait_for_response(thread.id, run.id)
+                print(f"Got response: {response[:50]}...")
             except Exception as e:
                 print(f"Error waiting for response: {str(e)}")
                 return "I apologize, but I encountered an error getting a response."
@@ -101,7 +107,7 @@ class MAI:
         except Exception as e:
             print(f"Unexpected error in process_message: {str(e)}")
             import traceback
-            traceback.print_exc()
+            print(traceback.format_exc())
             return "I apologize, but I encountered an unexpected error processing your message."
     
     def _get_or_create_thread(self, user_id: str):
@@ -145,23 +151,32 @@ def home():
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
+        print("Chat endpoint called")
         data = request.get_json()
+        print(f"Request data: {data}")
+        
         user_id = data.get('user_id', 'default_user')
         message = data.get('message')
         
+        print(f"User ID: {user_id}, Message: {message}")
+        
         if not message:
+            print("Error: No message provided")
             return jsonify({'error': 'Message is required'}), 400
         
-        print(f"Received chat request from user {user_id}: {message[:50]}...")
+        print(f"Processing message with OpenAI assistant {os.getenv('ASSISTANT_ID')}")
+        
         response = mai.process_message(user_id, message)
-        print(f"Sending response: {response[:50]}...")
+        print(f"Response generated: {response[:50]}...")
+        
         return jsonify({'response': response})
         
     except Exception as e:
-        print(f"Error in chat endpoint: {str(e)}")
+        print(f"ERROR in chat endpoint: {str(e)}")
         import traceback
-        traceback.print_exc()
-        return jsonify({'error': 'An unexpected error occurred'}), 500
+        error_traceback = traceback.format_exc()
+        print(f"Traceback: {error_traceback}")
+        return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
 @app.route('/reset', methods=['POST'])
 def reset():
