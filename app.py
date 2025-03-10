@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import os
 from openai import OpenAI
 from datetime import datetime
+import time
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -84,6 +85,10 @@ class MAI:
 
 mai = MAI()
 
+@app.route('/')
+def home():
+    return "Welcome to MAI - Your Sales Assistant is live! Use /chat to interact."
+
 @app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json()
@@ -93,5 +98,4 @@ def chat():
     return jsonify({'response': response})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
-    
+    app.run(host='0.0.0.0', port=5000, debug=True) 
