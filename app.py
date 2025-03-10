@@ -4,7 +4,6 @@ from openai import OpenAI
 from datetime import datetime
 from flask_cors import CORS
 from dotenv import load_dotenv
-from pymongo import MongoClient
 import time
 
 # Load environment variables
@@ -12,16 +11,6 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-
-# MongoDB setup - Initialize inside class to avoid fork issues
-def get_mongo_client():
-    return MongoClient(
-        os.getenv('MONGO_URI'), 
-        serverSelectionTimeoutMS=5000, 
-        ssl=True, 
-        ssl_cert_reqs='CERT_NONE',
-        retryWrites=True
-    )
 
 class MAI:
     def __init__(self):
@@ -31,9 +20,6 @@ class MAI:
     
     def process_message(self, user_id: str, message: str) -> str:
         try:
-            db = get_mongo_client()["mai_db"]
-            conversations = db["conversations"]
-            
             thread = self._get_or_create_thread(user_id)
             messages = self.client.beta.threads.messages.list(thread_id=thread.id)
             is_first_message = len(messages.data) == 0
@@ -45,12 +31,6 @@ class MAI:
                     role="assistant",
                     content=initial_question
                 )
-                conversations.insert_one({
-                    "user_id": user_id,
-                    "question": initial_question,
-                    "response": None,
-                    "timestamp": datetime.now()
-                })
                 return initial_question
             
             self.client.beta.threads.messages.create(
@@ -58,12 +38,6 @@ class MAI:
                 role="user",
                 content=message
             )
-            conversations.insert_one({
-                "user_id": user_id,
-                "question": "What has you looking into MAI today?",
-                "response": message,
-                "timestamp": datetime.now()
-            })
             
             run = self.client.beta.threads.runs.create(
                 thread_id=thread.id,
@@ -90,7 +64,7 @@ class MAI:
                 messages = self.client.beta.threads.messages.list(thread_id=thread_id)
                 return messages.data[0].content[0].text.value
             elif run.status in ["failed", "cancelled"]:
-                return "Sorry, I couldn’t process that."
+                return "Sorry, I couldn't process that."
             time.sleep(0.5)  # Poll faster but lighter
         return "Sorry, taking too long—try again later."
 
@@ -120,4 +94,11 @@ def reset():
     return jsonify({'status': 'reset successful'})
 
 if __name__ == '__main__':
+    # Print startup message
+    print("Starting MAI Training Interface...")
+    print(f"OpenAI API Key: {'Present' if os.getenv('OPENAI_API_KEY') else 'Missing'}")
+    print(f"Assistant ID: {'Present' if os.getenv('ASSISTANT_ID') else 'Missing'}")
+    
+    # Run the app
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)  # Render uses PORT
+    
