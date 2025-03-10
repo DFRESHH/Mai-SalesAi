@@ -15,7 +15,13 @@ CORS(app)
 
 # MongoDB setup - Initialize inside class to avoid fork issues
 def get_mongo_client():
-    return MongoClient(os.getenv('MONGO_URI'), serverSelectionTimeoutMS=5000)
+    return MongoClient(
+        os.getenv('MONGO_URI'), 
+        serverSelectionTimeoutMS=5000, 
+        ssl=True, 
+        ssl_cert_reqs='CERT_NONE',
+        retryWrites=True
+    )
 
 class MAI:
     def __init__(self):
@@ -102,6 +108,16 @@ def chat():
     response = mai.process_message(user_id, message)
     return jsonify({'response': response})
 
+@app.route('/reset', methods=['POST'])
+def reset():
+    data = request.get_json()
+    user_id = data.get('user_id', 'default_user')
+    
+    # Clear the thread from memory
+    if user_id in mai.threads:
+        del mai.threads[user_id]
+    
+    return jsonify({'status': 'reset successful'})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)), debug=False)  # Render uses PORT
-    
