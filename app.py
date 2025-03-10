@@ -87,7 +87,7 @@ mai = MAI()
 
 @app.route('/')
 def home():
-    return "Welcome to MAI - Your Sales Assistant is live! Use /chat to interact."
+    return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
