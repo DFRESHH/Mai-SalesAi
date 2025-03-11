@@ -314,68 +314,48 @@
         } else {
             micButton.style.display = 'none';
         }
-
-        function speakText(text) {
-    if (!voiceEnabled) return;
+    function speakText(text) {
+        if (!voiceEnabled) return;
     
-    // Stop any ongoing speech
-    synth.cancel();
+        // Stop any ongoing speech
+        synth.cancel();
     
-    const utterance = new SpeechSynthesisUtterance(text);
+        const utterance = new SpeechSynthesisUtterance(text);
     
-    // Get available voices
-    let voices = synth.getVoices();
+        // Get available voices
+        let voices = synth.getVoices();
     
-    // Log all available voices to help with debugging
-    console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
+        // Debugging: Log available voices
+        console.log("Available voices:", voices.map(v => v.name));
     
-    // Try to find more natural sounding US female voices first
-    const preferredVoiceKeywords = ['Samantha', 'Ava', 'Natural', 'Premium', 'Enhanced'];
-    
-    if (voices.length > 0) {
-        // Look for specific high-quality voices first
+        // Try to find a female voice
         let selectedVoice = null;
-        
-        // Try to find one of our preferred voices
-        for (const keyword of preferredVoiceKeywords) {
-            selectedVoice = voices.find(voice => 
-                voice.name.includes(keyword) && 
-                voice.lang.includes('en-US')
-            );
-            if (selectedVoice) break;
-        }
-        
-        // If no preferred voice, look for any US female voice
+    
+        // First try Microsoft Zira (a good US female voice)
+        selectedVoice = voices.find(voice => voice.name.includes("Microsoft Zira"));
+    
+        // If not found, try Google US English (which might be neutral)
         if (!selectedVoice) {
-            selectedVoice = voices.find(voice => 
-                voice.name.includes('Female') && 
-                (voice.lang === 'en-US' || voice.name.includes('US'))
-            );
+        selectedVoice = voices.find(voice => voice.name === "Google US English");
         }
-        
-        // If still no voice, use any female English voice
-        if (!selectedVoice) {
-            selectedVoice = voices.find(voice => 
-                voice.name.includes('Female') && voice.lang.includes('en-US')
-            );
-        }
-        
-        // If still no voice, use any English voice
-        if (!selectedVoice) {
-            selectedVoice = voices.find(voice => voice.lang.includes('en-US'));
-        }
-        
+    
         // Apply the selected voice
         if (selectedVoice) {
             utterance.voice = selectedVoice;
-            console.log("Using voice:", selectedVoice.name);
-        }
+        console.log("Using voice:", selectedVoice.name);
+        } else {
+        console.log("No preferred voice found. Using default.");
     }
     
-         // Fine-tune the voice to sound more natural
-        utterance.rate = 0.95;     // Slightly slower (normal is 1.0)
-        utterance.pitch = 1.05;    // Very slightly higher pitch (less robotic)
-        utterance.volume = 1.0;    // Full volume
+    // Make the voice more feminine if we're using Google US English
+    if (selectedVoice && selectedVoice.name === "Google US English") {
+        utterance.pitch = 1.2; // Higher pitch for more feminine sound
+    } else {
+        utterance.pitch = 1.05; // Normal pitch for Microsoft Zira
+    }
+    
+    // Fine-tune the voice to sound more natural
+    utterance.rate = 0.95;     // Slightly slower
     
     synth.speak(utterance);
 }
