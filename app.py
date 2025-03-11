@@ -25,7 +25,7 @@ class MAI:
             is_first_message = len(messages.data) == 0
             
             if is_first_message:
-                initial_question = "What has you looking into MAI today?"
+                initial_question = "Fantastic, glad you are here! What would you like to know about MAI?"
                 self.client.beta.threads.messages.create(
                     thread_id=thread.id,
                     role="assistant",

@@ -62,39 +62,41 @@
     <div class="container mx-auto px-4 py-8 max-w-4xl">
         <div class="bg-white rounded-lg shadow-lg p-6">
             <!-- Header -->
-            <div class="mb-6 border-b pb-4">
-                <div class="flex items-center mb-2">
-                    <span class="text-blue-600 text-3xl mr-2"><i class="fas fa-robot"></i></span>
-                    <h1 class="text-2xl font-bold text-gray-800">MAI Sales Training Interface</h1>
-                </div>
-                <p class="text-gray-600">MAI (Marketing AI) is a virtual sales assistant that you can help train to become better at sales conversations. Your feedback and interactions help improve its responses.</p>
-            </div>
+<div class="mb-4 border-b pb-3">
+    <div class="flex items-center mb-1">
+        <span class="mr-2">
+            <img src="static/images/MAI.png" alt="MAI" class="w-16 h-16 rounded-full">
+        </span>
+        <h1 class="text-xl font-bold text-gray-800">MAI Sales Assistant Interface</h1>
+    </div>
+    <p class="text-gray-600 text-sm">MAI (Marketing AI) is a virtual sales assistant that you can help train to become better at sales conversations.</p>
+</div>
 
-            <!-- User ID Input with better guidance -->
-            <div class="mb-4 bg-blue-50 p-4 rounded-lg">
-                <label for="user-id" class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-id-badge mr-1"></i> Trainer ID
-                </label>
-                <div class="flex gap-2">
-                    <input type="text" id="user-id" 
-                           class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                           placeholder="Enter your assigned trainer ID">
-                    <button id="connect-button" onclick="initializeSession()" 
-                            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-                            aria-label="Connect to training session">
-                        <i class="fas fa-plug mr-1" aria-hidden="true"></i> Connect
-                    </button>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">Your trainer ID is needed to track your training sessions. If you don't have one, please contact your administrator.</p>
-            </div>
+<!-- User ID Input with thinner design -->
+<div class="mb-3 bg-blue-50 p-2 rounded">
+    <label for="user-id" class="block text-xs font-medium text-gray-700 mb-1">
+        <i class="fas fa-id-badge mr-1"></i> Customer Name
+    </label>
+    <div class="flex gap-2">
+        <input type="text" id="user-id" 
+               class="w-full p-1 border rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition"
+               placeholder="Enter your Customer Name">
+        <button id="connect-button" onclick="initializeSession()" 
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center"
+                aria-label="Connect to chat session">
+            <i class="fas fa-play mr-1" aria-hidden="true"></i> Chat
+        </button>
+    </div>
+    <p class="text-xs text-gray-500 mt-1">Your Customer Name is needed to advance the conversation.</p>
+</div>
 
-            <!-- Status indicator -->
-            <div id="status-bar" class="mb-4 hidden">
-                <div class="flex items-center p-2 rounded bg-gray-100">
-                    <span id="status-icon" class="mr-2 text-green-500"><i class="fas fa-circle"></i></span>
-                    <span id="status-message" class="text-sm">Connected as: <span id="connected-user-id" class="font-medium"></span></span>
-                </div>
-            </div>
+<!-- Status indicator -->
+<div id="status-bar" class="mb-3 hidden">
+    <div class="flex items-center p-1 rounded bg-gray-100">
+        <span id="status-icon" class="mr-2 text-green-500"><i class="fas fa-circle"></i></span>
+        <span id="status-message" class="text-xs">Connected as: <span id="connected-user-id" class="font-medium"></span></span>
+    </div>
+</div>
 
             <!-- Voice Controls -->
             <div id="voice-controls" class="mb-4 hidden">
@@ -157,7 +159,7 @@
             <!-- Help text -->
             <div class="mt-4 text-xs text-gray-500">
                 <p><i class="fas fa-info-circle mr-1"></i> Tips: 
-                   Ask MAI about its sales capabilities, challenge it with different scenarios, or provide feedback on its responses. You can also use the microphone button to speak your messages.</p>
+                   Ask MAI about its sales capabilities, and how its can help you grow your sales team. You can also use the microphone button to speak your messages.</p>
             </div>
         </div>
     </div>
@@ -216,14 +218,14 @@
         } else {
             console.warn("Speech recognition not supported");
         }
-
+    
         // Handle Enter key
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 sendMessage();
             }
         });
-
+    
         // Character counter
         messageInput.addEventListener('input', function() {
             const count = this.value.length;
@@ -355,19 +357,24 @@
     }
     
     // Fine-tune the voice to sound more natural
-    utterance.rate = 0.95;     // Slightly slower
+    utterance.rate = 0.85;     // Slightly slower
+    utterance.pitch = 0.90;    // Slightly higher pitch
+    utterance.volume = 0.9;    // Full volume
+    
+    utterance.text = text;
     
     synth.speak(utterance);
 }
-
+    
         function initializeSession() {
             const userId = userIdInput.value.trim();
             
             if (!userId) {
-                showError('Please enter a trainer ID');
+                showError('Please enter a Customer Name');
                 return;
             }
-            
+            console.log("Initializing session for: " + userId); // Debug log
+
             // Update UI to connected state
             activeSession = true;
             statusBar.classList.remove('hidden');
@@ -387,9 +394,13 @@
             // Focus on message input
             messageInput.focus();
             
-            // Send initial message to get things started
-            showTyping();
-            fetchInitialMessage(userId);
+            // Create custom greeting with the exact format you specified
+        setTimeout(() => {
+            hideTyping();
+            const customerName = userId;
+            const greeting = `Hi ${customerName}, I am Mia your virtual sales assistant, what has you looking into my site today?`;
+            addMessage('assistant', greeting);
+         }, 1000); // Simulate typing dela
         }
         
         async function fetchInitialMessage(userId) {
@@ -404,7 +415,7 @@
                         message: "_init_" // Special flag for initialization
                     })
                 });
-
+    
                 const data = await response.json();
                 hideTyping();
                 
@@ -418,7 +429,7 @@
                 addMessage('assistant', 'Error: Could not connect to server');
             }
         }
-
+    
         function addMessage(role, content) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `p-4 rounded-lg mb-3 ${
@@ -434,10 +445,10 @@
             // Create icon element
             const icon = document.createElement('div');
             if (role === 'user') {
-                icon.innerHTML = '<i class="fas fa-user-circle text-xl text-blue-500 mr-2"></i>';
+                icon.innerHTML = '<i class="fas fa-user-alt text-xl text-blue-500 mr-2"></i>';
             } else {
                 // Using MAI icon
-                icon.innerHTML = '<i class="fas fa-robot text-xl text-blue-600 mr-2"></i>';
+                icon.innerHTML = '<img src="/static/images/MAI.png" alt="MAI" class="w-10 h-10 mr-2 rounded-full shadow-sm" />';
                 // Note: If you have a custom MAI image, uncomment this:
                 // icon.innerHTML = '<img src="/static/images/MAI.png" alt="MAI" class="w-8 h-8 mr-2 rounded-full" />';
             }
@@ -470,7 +481,7 @@
                 speakText(content);
             }
         }
-
+    
         function showTyping() {
             typingIndicator.classList.remove('hidden');
             chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -479,11 +490,11 @@
         function hideTyping() {
             typingIndicator.classList.add('hidden');
         }
-
+    
         function showError(message) {
             alert(message);
         }
-
+    
         async function sendMessage() {
             if (!activeSession) {
                 showError('Please connect with your trainer ID first');
@@ -498,7 +509,7 @@
                 return;
             }
             if (!message) return;
-
+    
             // Add user message to chat
             addMessage('user', message);
             messageInput.value = '';
@@ -509,7 +520,7 @@
             
             // Show typing indicator
             showTyping();
-
+    
             try {
                 const response = await fetch('/chat', {
                     method: 'POST',
@@ -521,7 +532,7 @@
                         message: message
                     })
                 });
-
+    
                 const data = await response.json();
                 hideTyping();
                 
@@ -545,7 +556,7 @@
                 micButton.disabled = false;
             }
         }
-
+    
         function confirmReset() {
             resetModal.classList.remove('hidden');
         }
@@ -553,7 +564,7 @@
         function hideResetModal() {
             resetModal.classList.add('hidden');
         }
-
+    
         async function resetConversation() {
             hideResetModal();
             
@@ -569,7 +580,7 @@
             sendButton.disabled = true;
             resetButton.disabled = true;
             micButton.disabled = true;
-
+    
             try {
                 const response = await fetch('/reset', {
                     method: 'POST',
@@ -580,7 +591,7 @@
                         user_id: userId
                     })
                 });
-
+    
                 const data = await response.json();
                 if (data.error) {
                     showError('Error: ' + data.error);
@@ -623,5 +634,3 @@
             userIdInput.focus();
         });
     </script>
-</body>
-</html>
