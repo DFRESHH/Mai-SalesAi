@@ -1,0 +1,57 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IMultiRewardDistributor",
+  "sourceName": "contracts/LeveragedYieldFarm.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IMToken",
+          "name": "_mToken",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_user",
+          "type": "address"
+        }
+      ],
+      "name": "getOutstandingRewardsForUser",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "emissionToken",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalAmount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "supplySide",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "borrowSide",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IMultiRewardDistributor.RewardInfo[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
