@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from pymongo import MongoClient
 from dotenv import load_dotenv
 from flask_cors import CORS
 import nest_asyncio
